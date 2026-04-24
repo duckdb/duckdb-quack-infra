@@ -1,0 +1,107 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Launch a DuckDB quack RPC instance; token + URI surfaced via stack Outputs.
+
+Parameters:
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    AllowedValues:
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - m7i.large
+      - m7i.xlarge
+      - r7i.large
+      - r7i.xlarge
+      - r7i.2xlarge
+      - r7i.4xlarge
+      - c6i.metal
+    Description: EC2 instance type
+
+Mappings:
+  # Map AWS region → Quack AMI id. Copy the AMI into each region you want to
+  # support with `aws ec2 copy-image --source-region us-east-1 --source-image-id ami-0e7c1dd1145d52811 --region us-east-1 --name quack-rpc`.
+  RegionAmi:
+    us-east-1:      { ami: ami-0e7c1dd1145d52811 }
+    us-east-2:      { ami: ami-0588efd8d0f487d43 }
+    us-west-1:      { ami: ami-053196a3ec33bc352 }
+    us-west-2:      { ami: ami-0a0413faff340a812 }
+    eu-west-1:      { ami: ami-0dee1e5fc3c4c57bb }
+    eu-central-1:   { ami: ami-0df4931a3d5e4e604 }
+    ap-northeast-1: { ami: ami-0dd5cba13c41de03a }
+    ap-southeast-1: { ami: ami-0a944435ae20a7ff0 }
+
+Resources:
+  QuackSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Quack RPC - HTTPS + HTTP (for ACME)
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+  ReadyHandle:
+    Type: AWS::CloudFormation::WaitConditionHandle
+
+  Ready:
+    Type: AWS::CloudFormation::WaitCondition
+    DependsOn: QuackInstance
+    Properties:
+      Handle: !Ref ReadyHandle
+      Timeout: '600'
+      Count: 1
+
+  QuackInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !FindInMap [RegionAmi, !Ref "AWS::Region", ami]
+      InstanceType: !Ref InstanceType
+      SecurityGroupIds:
+        - !Ref QuackSG
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-quack"
+      UserData:
+        Fn::Base64: !Sub |
+          SET VARIABLE my_token = replace(cast(uuid() as varchar), '-', '');
+          CALL rpc_start('quack:0.0.0.0:1294', allow_other_hostname=true);
+          SET rpc_default_token = getvariable('my_token');
+          CALL quack_identify(
+            name     => '${AWS::StackName}',
+            provider => 'ec2',
+            region   => '${AWS::Region}',
+            meta     => '{"stack_id":"${AWS::StackId}","instance_type":"${InstanceType}"}'
+          );
+          COPY (SELECT getvariable('my_token')) TO '/tmp/quack_token' (HEADER false);
+          .sh 'curl -sS -X PUT -H "Content-Type:" --data "{\"Status\":\"SUCCESS\",\"Reason\":\"ready\",\"UniqueId\":\"1\",\"Data\":\"$(cat /tmp/quack_token)\"}" "${ReadyHandle}"'
+
+Outputs:
+  InstanceId:
+    Value: !Ref QuackInstance
+  PublicIp:
+    Value: !GetAtt QuackInstance.PublicIp
+  QuackURI:
+    Description: "Paste into DuckDB's rpc_call."
+    Value: !Sub "quack:${QuackInstance.PublicIp}.nip.io:443"
+  Token:
+    Description: "Per-instance token (JSON-wrapped as {\"1\":\"<token>\"})."
+    Value: !GetAtt Ready.Data
+  QueryURL:
+    Description: "Query via shell.duckdb.org"
+    Value: !Sub
+      - "https://shell.duckdb.org/#queries=v0,FORCE-INSTALL-quack-FROM-core_nightly~,LOAD-quack~,CREATE-SECRET-quack_credentials-%28TYPE-quack%2C-SCOPE-%27quack%3A${IP}.nip.io%3A443%27%2C-TOKEN-%27${TOKEN}%27%29~,FROM-rpc_call%28%27quack%3A${IP}.nip.io%3A443%27%2C-%27FROM-whoami%28%29%27%29~"
+      - IP: !GetAtt QuackInstance.PublicIp
+        TOKEN: !Select [0, !Split ['"}', !Select [1, !Split ['{"1":"', !GetAtt Ready.Data]]]]
+  ConnectURL:
+    Description: "Connect via shell.duckdb.org"
+    Value: !Sub
+      - "https://shell.duckdb.org/#queries=v0,FORCE-INSTALL-quack-FROM-core_nightly~,LOAD-quack~,CREATE-SECRET-quack_credentials-%28TYPE-quack%2C-SCOPE-%27quack%3A${IP}.nip.io%3A443%27%2C-TOKEN-%27${TOKEN}%27%29~,.connect-quack%3A${IP}.nip.io%3A443"
+      - IP: !GetAtt QuackInstance.PublicIp
+        TOKEN: !Select [0, !Split ['"}', !Select [1, !Split ['{"1":"', !GetAtt Ready.Data]]]]
