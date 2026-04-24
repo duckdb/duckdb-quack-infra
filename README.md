@@ -104,14 +104,15 @@ done
 ### 6. Publish template + landing page
 
 ```bash
-aws s3 cp quack.yaml s3://test-wasm-carlo/deploy-quack.yaml
-aws cloudformation validate-template \
-    --template-url https://test-wasm-carlo.s3.us-east-1.amazonaws.com/deploy-quack.yaml
+aws s3 cp quack.yaml s3://duckdb-quack-infra/quack.yaml --acl public-read --region us-east-1
+aws cloudformation validate-template --region us-east-1 \
+    --template-url https://duckdb-quack-infra.s3.us-east-1.amazonaws.com/quack.yaml
 ```
 
 ### 7. Test-launch a stack
 
-Click the Launch Stack URL at https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/quickcreate?templateURL=https://test-wasm-carlo.s3.us-east-1.amazonaws.com/deploy-quack.yaml&stackName=quack-demo
+Click the Launch Stack URL at:
+https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/quickcreate?templateURL=https://duckdb-quack-infra.s3.us-east-1.amazonaws.com/quack.yaml&stackName=quack-demo
 
 ```bash
 aws cloudformation create-stack --stack-name quack-demo \
