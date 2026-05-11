@@ -23,7 +23,7 @@ Mappings:
   # Map AWS region → Quack AMI id. Copy the AMI into each region you want to
   # support with `aws ec2 copy-image --source-region us-east-1 --source-image-id ami-0e7c1dd1145d52811 --region us-east-1 --name quack-rpc`.
   RegionAmi:
-    us-east-1:      { ami: ami-0e7c1dd1145d52811 }
+    us-east-1:      { ami: ami-063083cedf36c48de }
     us-east-2:      { ami: ami-0588efd8d0f487d43 }
     us-west-1:      { ami: ami-053196a3ec33bc352 }
     us-west-2:      { ami: ami-0a0413faff340a812 }
@@ -70,6 +70,7 @@ Resources:
           Value: !Sub "${AWS::StackName}-quack"
       UserData:
         Fn::Base64: !Sub |
+          FORCE INSTALL quack FROM core_nightly;
           SET VARIABLE my_token = replace(cast(uuid() as varchar), '-', '');
           CALL quack_serve('quack:0.0.0.0:1294', allow_other_hostname=true, token=getvariable('my_token'));
           CALL quack_identify(
@@ -95,7 +96,7 @@ Outputs:
   QueryURL:
     Description: "Query via shell.duckdb.org"
     Value: !Sub
-      - "https://shell.duckdb.org/#queries=v0,FORCE-INSTALL-quack-FROM-core_nightly~,LOAD-quack~,CREATE-SECRET-quack_credentials-%28TYPE-quack%2C-SCOPE-%27quack%3A${IP}.nip.io%3A443%27%2C-TOKEN-%27${TOKEN}%27%29~,FROM-rpc_call%28%27quack%3A${IP}.nip.io%3A443%27%2C-%27FROM-whoami%28%29%27%29~"
+      - "https://shell.duckdb.org/#queries=v0,FORCE-INSTALL-quack-FROM-core_nightly~,LOAD-quack~,CREATE-SECRET-quack_credentials-%28TYPE-quack%2C-SCOPE-%27quack%3A${IP}.nip.io%3A443%27%2C-TOKEN-%27${TOKEN}%27%29~,FROM-quack_query%28%27quack%3A${IP}.nip.io%3A443%27%2C-%27FROM-whoami%28%29%27%29~"
       - IP: !GetAtt QuackInstance.PublicIp
         TOKEN: !Select [0, !Split ['"}', !Select [1, !Split ['{"1":"', !GetAtt Ready.Data]]]]
   ConnectURL:
