@@ -71,8 +71,7 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           SET VARIABLE my_token = replace(cast(uuid() as varchar), '-', '');
-          CALL rpc_start('quack:0.0.0.0:1294', allow_other_hostname=true);
-          SET rpc_default_token = getvariable('my_token');
+          CALL quack_serve('quack:0.0.0.0:1294', allow_other_hostname=true, token=getvariable('my_token'));
           CALL quack_identify(
             name     => '${AWS::StackName}',
             provider => 'ec2',
