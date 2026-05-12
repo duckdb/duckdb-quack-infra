@@ -21,16 +21,16 @@ Parameters:
 
 Mappings:
   # Map AWS region → Quack AMI id. Copy the AMI into each region you want to
-  # support with `aws ec2 copy-image --source-region us-east-1 --source-image-id ami-0e7c1dd1145d52811 --region us-east-1 --name quack-rpc`.
+  # support with `aws ec2 copy-image --source-region us-east-1 --source-image-id ami-063083cedf36c48de --region <target> --name quack-rpc`.
   RegionAmi:
     us-east-1:      { ami: ami-063083cedf36c48de }
-    us-east-2:      { ami: ami-0588efd8d0f487d43 }
-    us-west-1:      { ami: ami-053196a3ec33bc352 }
-    us-west-2:      { ami: ami-0a0413faff340a812 }
-    eu-west-1:      { ami: ami-0dee1e5fc3c4c57bb }
-    eu-central-1:   { ami: ami-0df4931a3d5e4e604 }
-    ap-northeast-1: { ami: ami-0dd5cba13c41de03a }
-    ap-southeast-1: { ami: ami-0a944435ae20a7ff0 }
+    us-east-2:      { ami: ami-0534102fe41cdd068 }
+    us-west-1:      { ami: ami-05ea622d54f27d307 }
+    us-west-2:      { ami: ami-0a73b24859b5e85a3 }
+    eu-west-1:      { ami: ami-02289f5eb1a125d5d }
+    eu-central-1:   { ami: ami-0059265d2a48f3c80 }
+    ap-northeast-1: { ami: ami-0fe050db1684654dc }
+    ap-southeast-1: { ami: ami-0ee8bf9abd8cbc145 }
 
 Resources:
   QuackSG:
@@ -97,11 +97,5 @@ Outputs:
     Description: "Query via shell.duckdb.org"
     Value: !Sub
       - "https://shell.duckdb.org/#queries=v0,FORCE-INSTALL-quack-FROM-core_nightly~,LOAD-quack~,CREATE-SECRET-quack_credentials-%28TYPE-quack%2C-SCOPE-%27quack%3A${IP}.nip.io%3A443%27%2C-TOKEN-%27${TOKEN}%27%29~,FROM-quack_query%28%27quack%3A${IP}.nip.io%3A443%27%2C-%27FROM-whoami%28%29%27%29~"
-      - IP: !GetAtt QuackInstance.PublicIp
-        TOKEN: !Select [0, !Split ['"}', !Select [1, !Split ['{"1":"', !GetAtt Ready.Data]]]]
-  ConnectURL:
-    Description: "Connect via shell.duckdb.org"
-    Value: !Sub
-      - "https://shell.duckdb.org/#queries=v0,FORCE-INSTALL-quack-FROM-core_nightly~,LOAD-quack~,CREATE-SECRET-quack_credentials-%28TYPE-quack%2C-SCOPE-%27quack%3A${IP}.nip.io%3A443%27%2C-TOKEN-%27${TOKEN}%27%29~,.connect-quack%3A${IP}.nip.io%3A443"
       - IP: !GetAtt QuackInstance.PublicIp
         TOKEN: !Select [0, !Split ['"}', !Select [1, !Split ['{"1":"', !GetAtt Ready.Data]]]]
