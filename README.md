@@ -1,6 +1,6 @@
 # duckdb-quack-infra
 
-Source of truth for the CloudFormation template (`quack.yaml`) and the steps to bake / publish the AMI + template that back the one-click "Launch Stack" demo at <https://test-wasm-carlo.s3.us-east-1.amazonaws.com/index.html>.
+Source of truth for the CloudFormation template (`quack.yaml`) and the steps to bake / publish the AMI + template that back the one-click "Launch Stack", see https://console.aws.amazon.com/cloudformation/home#/stacks/quickcreate?templateURL=https://duckdb-quack-ami.s3.us-east-1.amazonaws.com/quack.yaml&stackName=my-duckdb-quack-demo.
 
 ## What this deploys
 
